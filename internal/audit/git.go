@@ -2,6 +2,7 @@ package audit
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -22,7 +23,22 @@ func gitInstalled() bool {
 	return err == nil
 }
 
+// isCI reports whether this looks like a hosted build environment, where a
+// missing global git identity is expected rather than a fault.
+func isCI() bool {
+	return os.Getenv("CI") != "" || os.Getenv("GITHUB_ACTIONS") != ""
+}
+
 func checkGit() []Finding {
+	if isCI() {
+		return []Finding{{
+			ID:       "git.identity",
+			Title:    "CI environment",
+			Severity: SevOK,
+			Detail:   "Git identity and line-ending checks are skipped here; hosted runners set identity per checkout.",
+		}}
+	}
+
 	if !gitInstalled() {
 		return []Finding{{
 			ID:       "git.identity",

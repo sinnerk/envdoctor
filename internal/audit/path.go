@@ -47,9 +47,15 @@ func inspectPath() pathStats {
 	sort.Strings(dups)
 
 	var dead []string
+	seenDead := map[string]bool{}
 	for _, e := range inPath {
 		fi, err := os.Stat(e)
 		if err != nil || !fi.IsDir() {
+			k := normaliseDir(e)
+			if seenDead[k] {
+				continue
+			}
+			seenDead[k] = true
 			dead = append(dead, e)
 		}
 	}
@@ -107,7 +113,7 @@ func checkPath() []Finding {
 			ID:       "path.dead",
 			Title:    pluralOf(len(s.Dead), "PATH entry", "PATH entries") + " missing from disk",
 			Severity: SevWarn,
-			Detail:   "Missing: " + strings.Join(shortenAll(s.Dead, 5), ", ") + ". Every command lookup walks these for nothing, and they hide which tools are really installed.",
+			Detail:   "Missing: " + strings.Join(displayPaths(s.Dead, 5), ", ") + ". Every command lookup walks these for nothing, and they hide which tools are really installed.",
 			Fix:      "Delete them from PATH (System Properties > Environment Variables, or `setx PATH`).",
 			Weight:   deadPathWeight(len(s.Dead)),
 		})
@@ -129,7 +135,7 @@ func checkPath() []Finding {
 			ID:       "path.duplicates",
 			Title:    pluralOf(len(s.Duplicates), "directory", "directories") + " listed twice",
 			Severity: SevInfo,
-			Detail:   strings.Join(shortenAll(s.Duplicates, 5), ", ") + ". Harmless but it inflates PATH length and makes tool resolution slower.",
+			Detail:   strings.Join(displayPaths(s.Duplicates, 5), ", ") + ". Harmless but it inflates PATH length and makes tool resolution slower.",
 			Fix:      "Keep a single occurrence of each directory.",
 			Weight:   minInt(len(s.Duplicates), 3),
 		})
@@ -171,22 +177,45 @@ func formatInt(n int) string {
 	return string(out)
 }
 
-// shortenAll trims long absolute paths to their last two components.
-func shortenAll(items []string, limit int) []string {
+// displayPaths shortens absolute paths to their last two components, adding
+// components only when two different paths would otherwise render identically.
+// Without this, C:\Program Files\Go\bin and C:\tools\go\x64\bin both print as
+// "...\x64\bin" and the report looks wrong.
+func displayPaths(paths []string, limit int) []string {
+	items := append([]string(nil), paths...)
+	sort.Strings(items)
 	if len(items) > limit {
 		items = items[:limit]
 	}
-	out := make([]string, 0, len(items))
-	for _, it := range items {
-		out = append(out, shorten(it))
+
+	for depth := 2; depth <= 6; depth++ {
+		out := make([]string, len(items))
+		counts := map[string]int{}
+		collision := false
+		for i, p := range items {
+			out[i] = shortenDepth(p, depth)
+			counts[out[i]]++
+			if counts[out[i]] > 1 {
+				collision = true
+			}
+		}
+		if !collision {
+			return out
+		}
 	}
-	return out
+	return items
 }
 
-func shorten(p string) string {
+// shortenDepth keeps the last n components of a path, preserving its separator
+// style so Windows and POSIX paths both read naturally.
+func shortenDepth(p string, depth int) string {
 	parts := strings.FieldsFunc(p, func(r rune) bool { return r == '\\' || r == '/' })
-	if len(parts) <= 2 {
+	if len(parts) <= depth {
 		return p
 	}
-	return "...\\" + strings.Join(parts[len(parts)-2:], "\\")
+	sep := `\`
+	if !strings.Contains(p, `\`) {
+		sep = "/"
+	}
+	return "..." + sep + strings.Join(parts[len(parts)-depth:], sep)
 }

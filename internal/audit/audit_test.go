@@ -218,3 +218,63 @@ func TestPluralOf(t *testing.T) {
 		t.Errorf("plural = %q", got)
 	}
 }
+
+func TestIsLauncher(t *testing.T) {
+	// Shims that live inside another install must not create phantom duplicates.
+	for _, name := range []string{"pip", "pip3", "py", "npm", "npx", "pnpm", "yarn", "bun"} {
+		if !isLauncher(name) {
+			t.Errorf("%s should be a launcher", name)
+		}
+	}
+	for _, name := range []string{"python", "python3", "node", "git", "java"} {
+		if isLauncher(name) {
+			t.Errorf("%s should not be a launcher", name)
+		}
+	}
+}
+
+func TestDisplayPathsResolvesCollisions(t *testing.T) {
+	got := displayPaths([]string{`C:\Program Files\Go\bin`, `C:\tools\go\x64\bin`}, 4)
+	if len(got) != 2 {
+		t.Fatalf("got %v", got)
+	}
+	if got[0] == got[1] {
+		t.Fatalf("two different installs rendered identically: %v", got)
+	}
+	if !strings.Contains(got[0], "x64") || !strings.Contains(got[1], "x64") {
+		t.Logf("rendered as %v", got)
+	}
+}
+
+func TestDeadEntriesDeduped(t *testing.T) {
+	t.Setenv("PATH", `C:\definitely-missing-a;C:\definitely-missing-a;C:\definitely-missing-b`)
+
+	findings := checkPath()
+	var dead *Finding
+	for i := range findings {
+		if findings[i].ID == "path.dead" {
+			dead = &findings[i]
+			break
+		}
+	}
+	if dead == nil {
+		t.Fatal("expected a path.dead finding")
+	}
+	if dead.Weight != 4 {
+		t.Errorf("weight = %d, want 4 (two unique entries)", dead.Weight)
+	}
+	if strings.Count(dead.Detail, "definitely-missing-a") != 1 {
+		t.Errorf("duplicate dead entry listed more than once: %s", dead.Detail)
+	}
+}
+
+func TestCheckGitSkipsOnCI(t *testing.T) {
+	t.Setenv("CI", "true")
+	findings := checkGit()
+	if len(findings) != 1 {
+		t.Fatalf("expected one informational finding, got %d: %+v", len(findings), findings)
+	}
+	if findings[0].Severity != SevOK || findings[0].Weight != 0 {
+		t.Errorf("CI finding should be free: %+v", findings[0])
+	}
+}

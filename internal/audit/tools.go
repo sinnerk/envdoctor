@@ -117,6 +117,19 @@ func familyOf(name string) string {
 	}
 }
 
+// isLauncher reports whether a command is a shim that lives inside another
+// installation rather than an installation of its own: pip sits inside Python,
+// npm inside Node, and py.exe sits in C:\Windows. Counting launchers as install
+// roots produces phantom duplicates on otherwise healthy machines.
+func isLauncher(name string) bool {
+	switch strings.ToLower(name) {
+	case "pip", "pip3", "py", "npm", "npx", "pnpm", "yarn", "bun":
+		return true
+	default:
+		return false
+	}
+}
+
 func checkTools(names []string) []Finding {
 	if len(names) == 0 {
 		names = DefaultTools
@@ -149,6 +162,12 @@ func checkTools(names []string) []Finding {
 		// A stub first on PATH is what actually breaks the command in a fresh shell.
 		if hits[0].Stub {
 			stubbed[key] = append(stubbed[key], name)
+		}
+
+		// Launchers still run and still matter for stubs, but they are not
+		// evidence of a second installation.
+		if isLauncher(name) {
+			continue
 		}
 
 		seen := fam.seen
@@ -205,7 +224,7 @@ func checkTools(names []string) []Finding {
 			continue
 		}
 		sort.Strings(fam.roots)
-		multi = append(multi, fmt.Sprintf("%s: %s", key, strings.Join(shortenAll(fam.roots, 4), ", ")))
+		multi = append(multi, fmt.Sprintf("%s: %s", key, strings.Join(displayPaths(fam.roots, 4), ", ")))
 	}
 	if len(multi) > 0 {
 		sort.Strings(multi)
