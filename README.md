@@ -1,5 +1,8 @@
 # envdoctor
 
+[![CI](https://github.com/sinnerk/envdoctor/actions/workflows/ci.yml/badge.svg)](https://github.com/sinnerk/envdoctor/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/sinnerk/envdoctor)](https://github.com/sinnerk/envdoctor/releases)
+
 **A health check for the machine you build on.** One command, read-only, no admin rights.
 
 `envdoctor` inspects a Windows developer setup and prints what is actually wrong with it:
@@ -96,7 +99,7 @@ envdoctor --fail-under 80     # exit 1 when the score drops below 80 (CI gate)
 | Flag | Effect |
 | --- | --- |
 | `--json` | Print the full report as JSON. |
-| `--redact` | Replace `%USERPROFILE%`, `%LOCALAPPDATA%`, `%APPDATA%`, `%ProgramFiles%` with variable names before printing. |
+| `--redact` | Replace your home, app-data and Program Files paths with `%USERPROFILE%`, `%LOCALAPPDATA%`, `%APPDATA%` and `%ProgramFiles%` before printing. |
 | `--fast` | Skip the package-cache size scan, which is the only slow check (about 2 s on multi-gigabyte caches). |
 | `--fail-under N` | Exit with status 1 when the score is below `N`. Default 0, never fails. |
 | `--no-color` | Disable ANSI colour (also honours `NO_COLOR`). |
@@ -153,6 +156,22 @@ self-hosted Windows runner that drifts over time:
 - **No network.** The binary never makes a request, so it works offline and cannot phone home.
 - **No telemetry, no config file, no state.** One static binary, deterministic output.
 - **Explainable score.** Every point lost traces to a named finding with a documented weight.
+
+## Found a false positive?
+
+Every check is a heuristic, and heuristics are wrong sometimes. If `envdoctor` flags
+something that is actually fine on your machine, that is a bug worth fixing:
+
+```powershell
+envdoctor --json --redact
+```
+
+Paste the output into an [issue](https://github.com/sinnerk/envdoctor/issues). `--redact`
+removes your username and install paths; it leaves the findings themselves intact.
+
+The most useful reports say what the finding claimed and what the machine actually has.
+For example: "it says Python is stubbed, but `python --version` prints 3.12.10 and
+`where python` points at `C:\Python312\python.exe`".
 
 ## Roadmap
 
