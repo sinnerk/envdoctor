@@ -8,8 +8,17 @@ on:
 permissions:
   contents: read
 
+# A newer push makes an older run irrelevant; cancel it instead of queueing work
+# behind a stalled runner.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    # A hosted runner can wedge (seen once on ubuntu-latest: go vet never returned
+    # and the job sat for 45 minutes). Fail in minutes, not in most of an hour.
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -38,7 +47,9 @@ jobs:
         run: go vet ./...
 
       - name: test
-        run: go test ./...
+        # Explicit timeout so a hanging test reports as a test failure with a
+        # stack dump instead of waiting for the job timeout.
+        run: go test -timeout 5m ./...
 
       - name: build
         run: go build ./...
@@ -46,6 +57,7 @@ jobs:
   smoke:
     name: audit a clean runner
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
