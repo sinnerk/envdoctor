@@ -11,6 +11,11 @@ It changes nothing, needs no elevation and never touches the network. Think
 Every finding comes with a one-line fix, and the score is just the sum of what is wrong —
 so nothing is hidden behind a number.
 
+![envdoctor demo](docs/demo.gif)
+
+*The recording above is the real output of `envdoctor --no-color`, captured straight into
+`docs/demo.gif` by [`tools/make-demo.ps1`](tools/make-demo.ps1). Nothing is mocked up.*
+
 ```
 envdoctor 0.1.1
 Windows 11 Home 25H2 (build 26200.9711) · amd64
