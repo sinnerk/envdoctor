@@ -1,0 +1,17 @@
+# build output
+/envdoctor
+/envdoctor.exe
+*.exe
+dist/
+
+# go
+*.test
+*.out
+coverage.txt
+
+# editor / os
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

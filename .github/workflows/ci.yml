@@ -1,0 +1,70 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - name: gofmt
+        shell: bash
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "gofmt needed on:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: vet
+        run: go vet ./...
+
+      - name: test
+        run: go test ./...
+
+      - name: build
+        run: go build ./...
+
+  smoke:
+    name: audit a clean runner
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - name: build
+        run: go build -o envdoctor.exe ./cmd/envdoctor
+
+      - name: run
+        shell: pwsh
+        run: |
+          .\envdoctor.exe --no-color --fast
+          .\envdoctor.exe --json --redact --fast | Out-File report.json -Encoding utf8
+          $report = Get-Content report.json -Raw | ConvertFrom-Json
+          "score=$($report.score) grade=$($report.grade) checks=$($report.checks)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: envdoctor-report
+          path: report.json
