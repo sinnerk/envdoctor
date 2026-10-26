@@ -12,7 +12,7 @@ Every finding comes with a one-line fix, and the score is just the sum of what i
 so nothing is hidden behind a number.
 
 ```
-envdoctor 0.1.0
+envdoctor 0.1.1
 Windows 11 Home 25H2 (build 26200.9711) · amd64
 
   53 / 100  grade F
@@ -51,7 +51,12 @@ every line above is a concrete thing that breaks builds or wastes an hour.
 
 ## Install
 
-Requires [Go](https://go.dev/dl/) 1.24 or newer:
+**Download the binary:** grab `envdoctor.exe` from
+[Releases](https://github.com/sinnerk/envdoctor/releases) and put it anywhere on `PATH`.
+It is a single static binary with no runtime and no dependencies. It is not code-signed,
+so SmartScreen may warn the first time.
+
+**With Go** (1.24 or newer):
 
 ```powershell
 go install github.com/sinnerk/envdoctor/cmd/envdoctor@latest
@@ -113,6 +118,10 @@ points and the total at 100, so one badly broken thing cannot mask the rest.
 | C | 70–79 | Workable, with real risks |
 | D | 60–69 | Messy |
 | F | 0–59 | Actively costing you time |
+
+The tool is strict on purpose. A pristine CI image usually lands around 70, because its
+`PATH` really is 2,700 characters and carries dead entries from preinstalled SDKs. An `A`
+means there is nothing to fix, not that no warnings happened to fire.
 
 ## Use it in CI
 

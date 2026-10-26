@@ -12,7 +12,7 @@ import (
 )
 
 // Version is stamped into reports and compared by the update hint.
-var Version = "0.1.0"
+var Version = "0.1.1"
 
 // Severity describes how much a finding matters.
 type Severity string

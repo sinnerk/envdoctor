@@ -7,11 +7,11 @@ at 100.
 | ID | Severity | Weight | What it means |
 | --- | --- | --- | --- |
 | `path.length` | warn / bad | 8 (>2,047 chars) / 20 (>8,191) | Some installers and legacy tools truncate `PATH` at 2,047 characters and silently drop entries. The Windows environment block caps at 32,767. |
-| `path.dead` | warn | 2 per entry, max 10 | The directory no longer exists. Every command lookup walks it for nothing, and it hides which tools are actually installed. |
+| `path.dead` | warn | 2 per unique entry, max 10 | The directory no longer exists. Repeats are counted once. Every command lookup walks it for nothing, and it hides which tools are actually installed. |
 | `path.relative` | warn | 6 | A relative entry (`.\bin`, `.`) resolves against the current directory, so a file dropped there can run instead of the intended tool. |
 | `path.duplicates` | info | 1 per entry, max 3 | The same directory is listed twice. Harmless, but it inflates `PATH` and slows resolution. |
 | `tools.store-stub` | warn | 8 | The command resolves to a zero-byte `WindowsApps` alias. With no Store package installed, running it opens the Microsoft Store instead of the tool. |
-| `tools.multiple` | info | 4 per tool family, max 12 | The same tool is installed in more than one place, so which version you get depends on `PATH` order. Tool families are reported once (`java` and `javac` are one JDK). |
+| `tools.multiple` | info | 4 per tool family, max 12 | The same tool is installed in more than one place, so which version you get depends on `PATH` order. Tool families are reported once (`java` and `javac` are one JDK), and launchers such as `npm` or `py` are not counted as extra installs. |
 | `system.longpaths` | warn | 8 | `HKLM\SYSTEM\CurrentControlSet\Control\FileSystem\LongPathsEnabled` is 0. Paths past 260 characters fail in tools that honour the legacy limit. |
 | `git.identity` | warn | 6 | Global `user.name` or `user.email` is missing, so new repositories cannot commit until one is set. |
 | `git.lineendings` | info | 1 | `core.autocrlf` is unset on Windows, the usual cause of whole-file diffs after a checkout. |
@@ -35,9 +35,20 @@ at 100.
 `yarn` and `bun` are another; `java`, `javac` and `jar` are another. Family grouping keeps
 one installation from being reported five times because it ships five command names.
 
+Inside a family, only the real executable counts as an installation: `pip` lives inside
+Python, `npm` lives inside Node, and `py.exe` lives in `C:\Windows`. Those launchers still
+participate in Store-stub detection — a stubbed `python` is exactly the failure this tool
+exists to catch — but they never create a phantom duplicate.
+
 Installation roots are collapsed too: a git install that exposes both `bin\` and `cmd\`
 counts once, while JDK 17 and JDK 21 remain separate, because that distinction actually
 changes which compiler runs.
+
+## In CI
+
+When `CI` or `GITHUB_ACTIONS` is set, the git identity and line-ending checks are replaced
+by a single informational line, because hosted runners intentionally have no global git
+identity. Everything else runs unchanged, so `--fail-under` remains a useful drift gate.
 
 ## Adding a check
 
