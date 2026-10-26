@@ -247,7 +247,10 @@ func TestDisplayPathsResolvesCollisions(t *testing.T) {
 }
 
 func TestDeadEntriesDeduped(t *testing.T) {
-	t.Setenv("PATH", `C:\definitely-missing-a;C:\definitely-missing-a;C:\definitely-missing-b`)
+	base := t.TempDir()
+	a := filepath.Join(base, "missing-a")
+	b := filepath.Join(base, "missing-b")
+	t.Setenv("PATH", strings.Join([]string{a, a, b}, string(os.PathListSeparator)))
 
 	findings := checkPath()
 	var dead *Finding
@@ -263,7 +266,7 @@ func TestDeadEntriesDeduped(t *testing.T) {
 	if dead.Weight != 4 {
 		t.Errorf("weight = %d, want 4 (two unique entries)", dead.Weight)
 	}
-	if strings.Count(dead.Detail, "definitely-missing-a") != 1 {
+	if strings.Count(dead.Detail, "missing-a") != 1 {
 		t.Errorf("duplicate dead entry listed more than once: %s", dead.Detail)
 	}
 }
