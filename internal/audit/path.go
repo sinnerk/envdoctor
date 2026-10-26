@@ -64,9 +64,14 @@ func inspectPath() pathStats {
 	return pathStats{Raw: raw, Entries: inPath, Dead: dead, Duplicates: dups, Relative: relative}
 }
 
-// normaliseDir produces a comparison key: case-insensitive, no trailing slash.
+// normaliseDir produces a comparison key: separator-agnostic, case-insensitive,
+// with no trailing separator. Keeping the key portable means the same logic and
+// tests work on Windows, macOS and Linux.
 func normaliseDir(p string) string {
-	return strings.ToLower(strings.TrimRight(strings.TrimSpace(p), `\/`))
+	p = strings.TrimSpace(p)
+	p = strings.ReplaceAll(p, `\`, `/`)
+	p = strings.TrimRight(p, `/`)
+	return strings.ToLower(p)
 }
 
 func checkPath() []Finding {

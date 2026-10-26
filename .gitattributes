@@ -1,0 +1,10 @@
+# Normalise line endings on checkout so gofmt, shells and editors agree.
+* text=auto eol=lf
+
+# Windows-only artefacts stay untouched.
+*.exe binary
+*.dll binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary

@@ -243,12 +243,18 @@ func pluralOf(n int, singular, plural string) string {
 // exposes two directories is not reported as two installations. Java 17 and 21
 // still count as separate roots, which is the distinction that matters.
 func installRoot(dir string) string {
-	switch strings.ToLower(filepath.Base(dir)) {
-	case "bin", "cmd", "sbin", "scripts":
-		return normaliseDir(filepath.Dir(dir))
-	default:
-		return normaliseDir(dir)
+	parts := strings.FieldsFunc(dir, func(r rune) bool { return r == '\\' || r == '/' })
+	if n := len(parts); n > 1 {
+		switch strings.ToLower(parts[n-1]) {
+		case "bin", "cmd", "sbin", "scripts":
+			root := strings.ToLower(strings.Join(parts[:n-1], "/"))
+			if strings.HasPrefix(dir, "/") {
+				root = "/" + root
+			}
+			return root
+		}
 	}
+	return normaliseDir(dir)
 }
 
 // plural renders "1 command" / "3 commands".

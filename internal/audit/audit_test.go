@@ -9,10 +9,11 @@ import (
 
 func TestNormaliseDir(t *testing.T) {
 	cases := []struct{ in, want string }{
-		{`C:\Tools\Bin`, `c:\tools\bin`},
-		{`C:\Tools\Bin\`, `c:\tools\bin`},
-		{`C:\Tools\Bin/`, `c:\tools\bin`},
-		{`  C:\Tools\Bin  `, `c:\tools\bin`},
+		{`C:\Tools\Bin`, `c:/tools/bin`},
+		{`C:\Tools\Bin\`, `c:/tools/bin`},
+		{`C:\Tools\Bin/`, `c:/tools/bin`},
+		{`  C:\Tools\Bin  `, `c:/tools/bin`},
+		{`/usr/local/bin`, `/usr/local/bin`},
 	}
 	for _, c := range cases {
 		if got := normaliseDir(c.in); got != c.want {
@@ -144,6 +145,9 @@ func TestInstallRootCollapsesBinAndCmd(t *testing.T) {
 	}
 	if got := installRoot(`C:\Program Files\nodejs`); got != normaliseDir(`C:\Program Files\nodejs`) {
 		t.Errorf("plain install dir rewritten: %q", got)
+	}
+	if got := installRoot("/usr/local/bin"); got != "/usr/local" {
+		t.Errorf("posix install root = %q, want /usr/local", got)
 	}
 }
 
