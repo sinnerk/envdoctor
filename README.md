@@ -61,6 +61,13 @@ every line above is a concrete thing that breaks builds or wastes an hour.
 It is a single static binary with no runtime and no dependencies. It is not code-signed,
 so SmartScreen may warn the first time.
 
+**With Scoop:**
+
+```powershell
+scoop bucket add sinnerk https://github.com/sinnerk/scoop-bucket
+scoop install envdoctor
+```
+
 **With Go** (1.24 or newer):
 
 ```powershell
