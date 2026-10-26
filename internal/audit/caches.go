@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 )
 
 // cacheTarget is one well-known package-manager cache location.
@@ -93,9 +94,18 @@ func checkCaches(fast bool) cacheResult {
 		}}}
 	}
 
+	// The nine cache trees live on the same volume, but walking them one after
+	// another leaves the disk idle between metadata calls; a goroutine per tree
+	// cuts wall time roughly in half without touching any file.
+	var wg sync.WaitGroup
 	for i := range targets {
-		targets[i].Size = dirSize(targets[i].Path)
+		wg.Add(1)
+		go func(t *cacheTarget) {
+			defer wg.Done()
+			t.Size = dirSize(t.Path)
+		}(&targets[i])
 	}
+	wg.Wait()
 	sort.Slice(targets, func(i, j int) bool { return targets[i].Size > targets[j].Size })
 
 	var total int64

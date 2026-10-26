@@ -1,6 +1,15 @@
 # envdoctor
 
-**Find out why your Windows dev box is broken — one command, read-only, no admin rights.**
+**A health check for the machine you build on.** One command, read-only, no admin rights.
+
+`envdoctor` inspects a Windows developer setup and prints what is actually wrong with it:
+the Microsoft Store stub that hijacks `python`, dead `PATH` entries, three Node installs
+fighting over which version runs, long-path support turned off, gigabytes of stale caches.
+It changes nothing, needs no elevation and never touches the network. Think
+`flutter doctor`, for a Windows box.
+
+Every finding comes with a one-line fix, and the score is just the sum of what is wrong —
+so nothing is hidden behind a number.
 
 ```
 envdoctor 0.1.0
@@ -12,7 +21,7 @@ Windows 11 Home 25H2 (build 26200.9711) · amd64
   ! Git identity is incomplete
       Missing global setting(s): user.email, user.name. New commits will be rejected or
       attributed to a placeholder.
-      fix: git config --global user.name "Your Name" && git config --global user.email ...
+      fix: set user.name and user.email with git config --global.
 
   ! 2 PATH entries missing from disk
       Missing: ...\.dotnet\tools, ...\go\bin. Every command lookup walks these for nothing,
@@ -48,9 +57,8 @@ Requires [Go](https://go.dev/dl/) 1.24 or newer:
 go install github.com/sinnerk/envdoctor/cmd/envdoctor@latest
 ```
 
-`go install` puts the binary in `%USERPROFILE%\go\bin`, which is on `PATH` by default on
-Windows. Prebuilt binaries and a `winget`/`scoop` manifest are next; until then, building
-from source is one command:
+`go install` puts the binary in `%USERPROFILE%\go\bin`. The Go installer adds that folder
+to `PATH`; if it is missing from yours, add it. To build from source instead:
 
 ```powershell
 git clone https://github.com/sinnerk/envdoctor.git
@@ -72,7 +80,7 @@ envdoctor --fail-under 80     # exit 1 when the score drops below 80 (CI gate)
 | --- | --- |
 | `--json` | Print the full report as JSON. |
 | `--redact` | Replace `%USERPROFILE%`, `%LOCALAPPDATA%`, `%APPDATA%`, `%ProgramFiles%` with variable names before printing. |
-| `--fast` | Skip the package-cache size scan (the only slow check, still under a second). |
+| `--fast` | Skip the package-cache size scan, which is the only slow check (about 2 s on multi-gigabyte caches). |
 | `--fail-under N` | Exit with status 1 when the score is below `N`. Default 0, never fails. |
 | `--no-color` | Disable ANSI colour (also honours `NO_COLOR`). |
 
